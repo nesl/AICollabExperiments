@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 
-from sensor_interfaces.msg import Num                        # CHANGE
+from sensor_interfaces.msg import RSSI                        # CHANGE
 
 
 class MinimalSubscriber(Node):
@@ -9,8 +9,8 @@ class MinimalSubscriber(Node):
     def __init__(self):
         super().__init__('minimal_subscriber')
         self.subscription = self.create_subscription(
-            Num,                                               # CHANGE
-            'topic',
+            RSSI,                                               # CHANGE
+            'rssi',
             self.listener_callback,
             10)
         self.subscription
