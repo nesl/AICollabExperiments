@@ -1,0 +1,6 @@
+[submodule "m-explore-ros2"]
+	path = m-explore-ros2
+	url = https://github.com/nesl/m-explore-ros2.git
+[submodule "go2_ros2_sdk"]
+	path = go2_ros2_sdk
+	url = https://github.com/nesl/go2_ros2_sdk.git
