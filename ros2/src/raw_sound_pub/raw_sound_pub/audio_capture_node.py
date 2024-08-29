@@ -68,7 +68,7 @@ class AudioCapturerNode(Node):
     def work(self) -> None:
 
         while rclpy.ok:
-            data = self.stream.read(self.chunk)
+            data = self.stream.read(self.chunk, exception_on_overflow=False)
 
             audio_frame_msg = AudioFrame()
             audio_frame_msg.header.stamp = self.get_clock().now().to_msg()

@@ -21,7 +21,9 @@ setup(
     entry_points={
         'console_scripts': [
 		'audio_capture = raw_sound_pub.audio_capture_node:main',
-		'audio_fft = raw_sound_pub.audio_fft:main'
+		'audio_fft = raw_sound_pub.audio_fft:main',
+		'audio_whisper = raw_sound_pub.audio_whisper:main'
+		'audio_track = raw_sound_pub.audio_track:main'
         ],
     },
 )
