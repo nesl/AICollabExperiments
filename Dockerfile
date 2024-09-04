@@ -77,7 +77,9 @@ RUN sed -i 's/import sensor_msgs\.point_cloud2 as pcl2/from sensor_msgs_py impor
 
 RUN source /opt/ros/humble/setup.bash && colcon build --packages-select odas_ros_msgs odas_ros
 
-RUN pip install scipy
+RUN pip install scipy pyaudio==0.2.12
+
+RUN apt-get install -y ffmpeg portaudio19-dev
 
 COPY docker_entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

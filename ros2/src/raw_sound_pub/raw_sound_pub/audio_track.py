@@ -5,7 +5,7 @@ from rclpy.node import Node
 import pdb
 import wave
 import time
-
+import pyaudio
 from array import array
 
 from audio_utils_msgs.msg import AudioFrame
@@ -19,6 +19,16 @@ def nbits_to_format(nbits):
         return 'signed_16'
     elif nbits == 32:
         return 'signed_32'
+    else:
+        raise ValueError('Not supported format (nbits={})'.format(nbits))
+
+def format_to_nbits(nbits):
+    if nbits == 'signed_9':
+        return 8
+    elif nbits == 'signed_16':
+        return 16
+    elif nbits == 'signed_32':
+        return 32
     else:
         raise ValueError('Not supported format (nbits={})'.format(nbits))
 
@@ -73,12 +83,22 @@ class AudioTrackNode(Node):
             
         self.audio_sub_sst = self.create_subscription(
             OdasSstArrayStamped, "sst", self.get_sst ,qos_profile)
+
+        self.audio_sub_speech = self.create_subscription(
+            AudioFrame, "txt_speech", self.play_sound ,10)
         
         #self.all_audio = np.array([])
         #self.all_audio_time = 0
         self.get_logger().info("AudioTrack node started")
         #self.wv = open('raw', 'wb')
+        self.p = pyaudio.PyAudio()
 
+
+    def play_sound(self, msg):
+        
+        stream = self.p.open(format = self.p.get_format_from_width(format_to_nbits(msg.format)//8), channels = msg.channel_count, rate = msg.sampling_frequency, output = True, output_device_index = 1)
+
+        stream.write(bytes(msg.data))
 
     def to_whisper(self, data, sample_count):
     
@@ -109,7 +129,7 @@ class AudioTrackNode(Node):
                     
                 self.audio_sources[source.id]["channel"] = source_idx
                 
-                if source.activity >= 0.9:
+                if source.activity >= 0.99:
                     self.audio_sources[source.id]["silence_time"] = 0.0
                     #self.get_logger().info("Activity registered")
                 else:
@@ -147,13 +167,13 @@ class AudioTrackNode(Node):
                     self.get_logger().info("Deleting")
                 
                 to_delete.append(aus)                
-                    
+            '''        
             elif self.audio_sources[aus]["total_time"] >= self.time_limit:
                 self.to_whisper(self.audio_sources[aus]["data"], self.audio_sources[aus]["sample_count"])
                 self.audio_sources[aus]["data"] = array('B',[])
                 self.audio_sources[aus]["total_time"] = 0.0
                 self.audio_sources[aus]["sample_count"] = 0
-        
+            '''        
         for aus in to_delete:
             del self.audio_sources[aus]
 
