@@ -9,11 +9,12 @@
   <exec_depend>rclpy</exec_depend>
   <exec_depend>audio_utils_msgs</exec_depend>
   <exec_depend>odas_ros_msgs</exec_depend>
+  <exec_depend>raw_sound_pub_interfaces</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-
 
   <export>
     <build_type>ament_python</build_type>
