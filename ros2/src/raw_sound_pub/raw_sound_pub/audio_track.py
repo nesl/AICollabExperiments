@@ -3,6 +3,10 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 import pdb
+import wave
+import time
+
+from array import array
 
 from audio_utils_msgs.msg import AudioFrame
 from odas_ros_msgs.msg import OdasSst, OdasSstArrayStamped
@@ -70,7 +74,10 @@ class AudioTrackNode(Node):
         self.audio_sub_sst = self.create_subscription(
             OdasSstArrayStamped, "sst", self.get_sst ,qos_profile)
         
+        #self.all_audio = np.array([])
+        #self.all_audio_time = 0
         self.get_logger().info("AudioTrack node started")
+        #self.wv = open('raw', 'wb')
 
 
     def to_whisper(self, data, sample_count):
@@ -82,10 +89,13 @@ class AudioTrackNode(Node):
         audio_frame_msg.channel_count = 1
         audio_frame_msg.sampling_frequency = self.rate
         audio_frame_msg.frame_sample_count = sample_count*self.chunk
-        audio_frame_msg.data = data.tobytes()
+        audio_frame_msg.data = data
         
         self.get_logger().info("Sending to whisper")
+
         self.audio_pub_vf.publish(audio_frame_msg)
+        #self.wv.write(data)
+
         
 
 
@@ -95,7 +105,7 @@ class AudioTrackNode(Node):
         
             if source.activity >= 0.9 or source.id in self.audio_sources.keys():
                 if source.id not in self.audio_sources.keys():
-                    self.audio_sources[source.id] = {"silence_time": 0.0, "data": np.array([]), "total_time": 0.0, "channel": source_idx, "sample_count": 0}
+                    self.audio_sources[source.id] = {"silence_time": 0.0, "data": array('B',[]), "total_time": 0.0, "channel": source_idx, "sample_count": 0}
                     
                 self.audio_sources[source.id]["channel"] = source_idx
                 
@@ -114,13 +124,19 @@ class AudioTrackNode(Node):
             msg.frame_sample_count != self.chunk):
             self.get_logger().error(
                 'Invalid frame (msg.format={}, msg.channel_count={}, msg.sampling_frequency={}, msg.frame_sample_count={})'
-                .format(msg.format, msg.channel_count, msg.sampling_frequency, msg.frame_sample_count))
+
+               .format(msg.format, msg.channel_count, msg.sampling_frequency, msg.frame_sample_count))
             return
 
-        
+        #self.all_audio = np.concatenate((self.all_audio,np.array(msg.data).view(np.int16)),axis=0)
+        #self.all_audio = np.concatenate((self.all_audio,np.array(msg.data)),axis=0)
+        #pdb.set_trace()
+        #data = array('B',np.array(msg.data).view(np.int16)[0::self.channels].copy().view(np.uint8).tolist())
+        #self.wv.write(data)
+        to_delete = []
         for aus in self.audio_sources.keys():
-            print(aus, self.audio_sources[aus]["total_time"])
-            self.audio_sources[aus]["data"] = np.concatenate((self.audio_sources[aus]["data"], np.array(msg.data).view(np.int16)[self.audio_sources[aus]["channel"]::self.channels]), axis=0)
+            #print(aus, self.audio_sources[aus]["total_time"])
+            self.audio_sources[aus]["data"].extend(np.array(msg.data).view(np.int16)[self.audio_sources[aus]["channel"]::self.channels].copy().view(np.uint8).tolist()) #np.concatenate((self.audio_sources[aus]["data"], np.array(msg.data).view(np.int16)[self.audio_sources[aus]["channel"]::self.channels]), axis=0)
 
             self.audio_sources[aus]["sample_count"] += 1
 
@@ -130,19 +146,30 @@ class AudioTrackNode(Node):
                     self.to_whisper(self.audio_sources[aus]["data"], self.audio_sources[aus]["sample_count"])
                     self.get_logger().info("Deleting")
                 
-                del self.audio_sources[aus]
+                to_delete.append(aus)                
                     
             elif self.audio_sources[aus]["total_time"] >= self.time_limit:
                 self.to_whisper(self.audio_sources[aus]["data"], self.audio_sources[aus]["sample_count"])
-                self.audio_sources[aus]["data"] = np.array([])
+                self.audio_sources[aus]["data"] = array('B',[])
                 self.audio_sources[aus]["total_time"] = 0.0
                 self.audio_sources[aus]["sample_count"] = 0
-            
+        
+        for aus in to_delete:
+            del self.audio_sources[aus]
+
+        
+        #if self.all_audio_time >= 5:
+        #    #wv.write(self.all_audio)
+        #    #wv.close()
+        #    self.all_audio = np.array([])
+        #    self.all_audio_time = 0
+        
+        #self.all_audio_time += self.chunk/self.rate
 
 
 def main(args=None):
     rclpy.init(args=args)
-    node = AudioWhisperNode()
+    node = AudioTrackNode()
     rclpy.spin(node)
     node.destroy_node()
 
